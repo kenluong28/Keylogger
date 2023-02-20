@@ -1,3 +1,4 @@
+# Encryption key generator
 from cryptography.fernet import Fernet
 
 key = Fernet.generate_key()

